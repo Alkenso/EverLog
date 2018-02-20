@@ -19,19 +19,20 @@
 #include <vector>
 #include <memory>
 
-#include <Everlog/LogEventHandler.h>
-#include <Everlog/ILogEvent.h>
+#include <Everlog/EventHandler.h>
+#include <Everlog/IEvent.h>
 
 namespace everlog
 {
     template <typename ... Backends>
-    class EverLog
+    class Everlog
     {
     public:
-        using EventType = ILogEvent<Backends...>;
-        using IEventHandlerType = ILogEventHandler<Backends...>;
-        template <typename ExactBackend> using EventHandlerType = LogEventHandler<ExactBackend, Backends...>;
+        using EventType = IEvent<Backends...>;
+        using IEventHandlerType = IEventHandler<Backends...>;
+        template <typename ExactBackend> using EventHandlerType = EventHandler<ExactBackend, Backends...>;
         
+        explicit Everlog(const Severity severity = Severity::None);
         
         template <typename Handler, typename = typename std::enable_if<std::is_base_of<IEventHandlerType, Handler>::value>>
         void addHandler(std::unique_ptr<Handler> handler);
@@ -40,32 +41,52 @@ namespace everlog
         void addHandler(ExactBackend&& backend);
         
         
-        void logEvent(const EventType& event);
+        void setSeverity(const Severity severity);
+        void logEvent(const Severity severity, const EventType& event);
         
     private:
         std::vector<std::unique_ptr<IEventHandlerType>> m_handlers;
+        Severity m_severity = Severity::None;
     };
 }
 
 template <typename ... Backends>
+everlog::Everlog<Backends...>::Everlog(const Severity severity /* = Severity::None */)
+: m_severity(severity)
+{}
+
+template <typename ... Backends>
 template <typename Handler, typename>
-void everlog::EverLog<Backends...>::addHandler(std::unique_ptr<Handler> handler)
+void everlog::Everlog<Backends...>::addHandler(std::unique_ptr<Handler> handler)
 {
     m_handlers.emplace_back(std::move(handler));
 }
 
 template <typename ... Backends>
 template <typename ExactBackend>
-void everlog::EverLog<Backends...>::addHandler(ExactBackend&& backend)
+void everlog::Everlog<Backends...>::addHandler(ExactBackend&& backend)
 {
     addHandler(std::unique_ptr<EventHandlerType<ExactBackend>>(new EventHandlerType<ExactBackend>(std::forward<ExactBackend>(backend))));
 }
 
 template <typename ... Backends>
-void everlog::EverLog<Backends...>::logEvent(const EventType& event)
+void everlog::Everlog<Backends...>::setSeverity(const Severity severity)
 {
+    m_severity = severity;
+}
+
+template <typename ... Backends>
+void everlog::Everlog<Backends...>::logEvent(const Severity severity, const EventType& event)
+{
+    if (Severity::None == severity ||
+        Severity::None == m_severity ||
+        severity > m_severity)
+    {
+        return;
+    }
+    
     for (std::unique_ptr<IEventHandlerType>& handler : m_handlers)
     {
-        handler->handleLogEvent(event);
+        handler->handleEvent(m_severity, event);
     }
 }

@@ -16,16 +16,16 @@
 
 #pragma once
 
-#include <Everlog/ILogEvent.h>
+#include <Everlog/IEvent.h>
 
 namespace everlog
 {
     template <typename ... Backends>
-    class ILogEventHandler
+    class IEventHandler
     {
     public:
-        virtual ~ILogEventHandler() {}
+        virtual ~IEventHandler() {}
         
-        virtual void handleLogEvent(const ILogEvent<Backends...>& event) = 0;
+        virtual void handleEvent(const Severity severity, const IEvent<Backends...>& event) = 0;
     };
 }

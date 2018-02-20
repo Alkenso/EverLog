@@ -16,24 +16,33 @@
 
 #pragma once
 
+#include <utility>
+
+#include <Everlog/IEventHandler.h>
+
 namespace everlog
 {
-    namespace utils
+    template <typename ExactBackend, typename ... Backends>
+    class EventHandler : public IEventHandler<Backends...>
     {
-        template <typename... Events>
-        struct ILogEventHelper;
+    public:
+        EventHandler(ExactBackend&& backend);
         
-        template <typename Event>
-        struct ILogEventHelper<Event> : Event
-        {
-            using Event::writeWithHandler;
-        };
+        virtual void handleEvent(const Severity severity, const IEvent<Backends...>& event) override;
         
-        template <typename Event, typename... Events>
-        struct ILogEventHelper<Event, Events...> : Event, ILogEventHelper<Events...>
-        {
-            using Event::writeWithHandler;
-            using ILogEventHelper<Events...>::writeWithHandler;
-        };
-    }
+    private:
+        ExactBackend m_backend;
+    };
 }
+
+template <typename ExactBackend, typename ... Backends>
+everlog::EventHandler<ExactBackend, Backends...>::EventHandler(ExactBackend&& backend)
+: m_backend(std::forward<ExactBackend>(backend))
+{}
+
+template <typename ExactBackend, typename ... Backends>
+void everlog::EventHandler<ExactBackend, Backends...>::handleEvent(const Severity severity, const IEvent<Backends...>& event)
+{
+    event.writeWithHandler(severity, m_backend);
+}
+

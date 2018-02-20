@@ -16,19 +16,20 @@
 
 #pragma once
 
-#include <Everlog/internal/ILogEventInternal.h>
+#include <Everlog/internal/IEventInternal.h>
+#include <Everlog/Severity.h>
 
 namespace everlog
 {
     template <typename Handler>
-    class ILogEventSingle
+    class IEventSingle
     {
     public:
-        virtual ~ILogEventSingle() {}
+        virtual ~IEventSingle() {}
         
-        virtual void writeWithHandler(Handler&) const = 0;
+        virtual void writeWithHandler(const Severity severity, Handler&) const = 0;
     };
     
     template <typename ... Handlers>
-    using ILogEvent = utils::ILogEventHelper<ILogEventSingle<Handlers>...>;
+    using IEvent = utils::IEventHelper<IEventSingle<Handlers>...>;
 }
