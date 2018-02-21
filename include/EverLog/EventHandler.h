@@ -30,6 +30,9 @@ namespace everlog
         
         virtual void handleEvent(const Severity severity, const IEvent<Backends...>& event) override;
         
+    protected:
+        ExactBackend& backend();
+        
     private:
         ExactBackend m_backend;
     };
@@ -43,6 +46,11 @@ everlog::EventHandler<ExactBackend, Backends...>::EventHandler(ExactBackend&& ba
 template <typename ExactBackend, typename ... Backends>
 void everlog::EventHandler<ExactBackend, Backends...>::handleEvent(const Severity severity, const IEvent<Backends...>& event)
 {
-    event.writeWithHandler(severity, m_backend);
+    event.writeWithBackend(severity, m_backend);
 }
 
+template <typename ExactBackend, typename ... Backends>
+ExactBackend& everlog::EventHandler<ExactBackend, Backends...>::backend()
+{
+    return m_backend;
+}

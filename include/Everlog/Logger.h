@@ -19,6 +19,7 @@
 #include <vector>
 #include <memory>
 #include <atomic>
+#include <mutex>
 
 #include <Everlog/EventHandler.h>
 #include <Everlog/IEvent.h>
@@ -48,6 +49,8 @@ namespace everlog
     private:
         std::vector<std::unique_ptr<IEventHandlerType>> m_handlers;
         std::atomic<Severity> m_severity;
+        
+        std::mutex m_handlersMutex;
     };
 }
 
@@ -60,6 +63,7 @@ template <typename ... Backends>
 template <typename Handler, typename>
 void everlog::Everlog<Backends...>::addHandler(std::unique_ptr<Handler> handler)
 {
+    std::lock_guard<std::mutex> lock(m_handlersMutex);
     m_handlers.emplace_back(std::move(handler));
 }
 

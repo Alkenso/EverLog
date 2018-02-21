@@ -16,20 +16,32 @@
 
 #pragma once
 
-#include <Everlog/internal/IEventInternal.h>
 #include <Everlog/Severity.h>
 
 namespace everlog
 {
-    template <typename Handler>
-    class IEventSingle
+    // General definition to apply recursive variadic args
+    // The class itself forces events to be able to log with given list of backends
+    template <typename... Backends>
+    class IEvent;
+    
+    // Class for single backend
+    template <typename Backend>
+    class IEvent<Backend>
     {
     public:
-        virtual ~IEventSingle() {}
+        virtual ~IEvent() {}
         
-        virtual void writeWithHandler(const Severity severity, Handler&) const = 0;
+        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
     };
     
-    template <typename ... Handlers>
-    using IEvent = utils::IEventHelper<IEventSingle<Handlers>...>;
+    // Class for multiple backends
+    template <typename Backend, typename... Backends>
+    class IEvent<Backend, Backends...>: public IEvent<Backends...>
+    {
+    public:
+        using IEvent<Backends...>::writeWithBackend;
+        
+        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
+    };
 }
