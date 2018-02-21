@@ -18,6 +18,7 @@
 
 #include <vector>
 #include <memory>
+#include <atomic>
 
 #include <Everlog/EventHandler.h>
 #include <Everlog/IEvent.h>
@@ -46,7 +47,7 @@ namespace everlog
         
     private:
         std::vector<std::unique_ptr<IEventHandlerType>> m_handlers;
-        Severity m_severity = Severity::None;
+        std::atomic<Severity> m_severity;
     };
 }
 
