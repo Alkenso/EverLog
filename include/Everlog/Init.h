@@ -16,32 +16,40 @@
 
 #pragma once
 
-#include <Everlog/Severity.h>
+#include <Everlog/Logger.h>
 
 namespace everlog
 {
-    // General definition to apply recursive variadic args
-    // The class itself forces events to be able to log with given list of backends
-    template <typename... Backends>
-    class IEvent;
-    
-    // Class for single backend
-    template <typename Backend>
-    class IEvent<Backend>
+    namespace utils
     {
-    public:
-        virtual ~IEvent() {}
-        
-        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
-    };
+        template <int Instance>
+        struct EverlogInstance {} ;
+    }
     
-    // Class for multiple backends
-    template <typename Backend, typename... Backends>
-    class IEvent<Backend, Backends...>: public IEvent<Backend>, public IEvent<Backends>...
-    {
-    public:
-        using IEvent<Backends...>::writeWithBackend;
-        
-        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
-    };
+    template <class T, template <class...> class Template>
+    struct is_specialization : std::false_type {};
+    
+    template <template <typename...> class Template, typename... Args>
+    struct is_specialization<Template<Args...>, Template> : std::true_type {};
 }
+
+#define EVERLOG_DECLARE_INSTANCE_(everlogType, instanceIdx) \
+namespace everlog \
+{ \
+    namespace utils \
+    { \
+        template <> \
+        struct EverlogInstance<instanceIdx> \
+        { \
+            static_assert(is_specialization<everlogType, Everlog>::value, "Pass only Everlog class specialization as everlogType"); \
+            static everlogType instance; \
+        }; \
+        everlogType EverlogInstance<instanceIdx>::instance; \
+    } \
+}
+
+
+#define EVERLOG_DEFAULT_INSTANCE 0
+
+#define EVERLOG_DECLARE_DEFAULT(everlogType)                EVERLOG_DECLARE_INSTANCE_(everlogType, EVERLOG_DEFAULT_INSTANCE)
+#define EVERLOG_DECLARE_INSTANCE(everlogType, instanceIdx)  EVERLOG_DECLARE_INSTANCE_(everlogType, instanceIdx)
