@@ -19,11 +19,7 @@
 #include <Everlog/Logger.h>
 #include <Everlog/Init.h>
 
-#define EVERLOG_GET_LOGGER_I(instanceIdx)   (everlog::utils::EverlogInstance<instanceIdx>::instance)
-#define EVERLOG_GET_LOGGER()                EVERLOG_GET_LOGGER_I(EVERLOG_DEFAULT_INSTANCE)
-
-
-#define LOG_I(instanceIdx, severity, event) EVERLOG_GET_LOGGER_I(instanceIdx).logEvent(severity, event)
+#define LOG_I(instanceIdx, severity, event) if (everlog::GlobalInstance<instanceIdx>::get()) everlog::GlobalInstance<instanceIdx>::get()->logEvent(severity, event)
 
 #define LOG_FATAL_I(instance, event)        LOG_I(instance, everlog::Severity::Fatal, event)
 #define LOG_ERROR_I(instance, event)        LOG_I(instance, everlog::Severity::Error, event)
@@ -33,7 +29,7 @@
 #define LOG_VERBOSE_I(instance, event)      LOG_I(instance, everlog::Severity::Verbose, event)
 
 
-#define LOG(severity, event)                LOG_I(EVERLOG_DEFAULT_INSTANCE, severity, event)
+#define LOG(severity, event)                LOG_I(everlog::kDefaultInstance, severity, event)
 
 #define LOG_FATAL(event)                    LOG(everlog::Severity::Fatal, event)
 #define LOG_ERROR(event)                    LOG(everlog::Severity::Error, event)

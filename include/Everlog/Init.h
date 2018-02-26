@@ -20,36 +20,53 @@
 
 namespace everlog
 {
+    static constexpr int kDefaultInstance = 0;
+    
+    template <int Instance>
+    class GlobalInstance {};
+    
+    using DefaultInstance = GlobalInstance<kDefaultInstance>;
+    
     namespace utils
     {
-        template <int Instance>
-        struct EverlogInstance {} ;
+        template <class T, template <class...> class Template>
+        struct is_specialization : std::false_type {};
+        
+        template <template <typename...> class Template, typename... Args>
+        struct is_specialization<Template<Args...>, Template> : std::true_type {};
+        
+        template <int Instance, typename EverlogType>
+        class InstanceHolder
+        {
+            static_assert(is_specialization<EverlogType, Everlog>::value, "Pass only Everlog class specialization as EverlogType");
+            
+        public:
+            static EverlogType& init(const everlog::Severity severity)
+            {
+                static std::once_flag s_once;
+                std::call_once(s_once, [severity]() { m_instance.reset(new EverlogType(severity)); });
+                return *m_instance;
+            }
+            
+            static EverlogType* get()
+            {
+                return m_instance.get();
+            }
+            
+        private:
+            static std::unique_ptr<EverlogType> m_instance;
+        };
+        
+        template<int Instance, typename EverlogType>
+        std::unique_ptr<EverlogType> InstanceHolder<Instance, EverlogType>::m_instance;
     }
-    
-    template <class T, template <class...> class Template>
-    struct is_specialization : std::false_type {};
-    
-    template <template <typename...> class Template, typename... Args>
-    struct is_specialization<Template<Args...>, Template> : std::true_type {};
 }
 
-#define EVERLOG_DECLARE_INSTANCE_(everlogType, instanceIdx) \
+#define EVERLOG_DECLARE_INSTANCE_(EverlogType, instanceIdx) \
 namespace everlog \
 { \
-    namespace utils \
-    { \
-        template <> \
-        struct EverlogInstance<instanceIdx> \
-        { \
-            static_assert(is_specialization<everlogType, Everlog>::value, "Pass only Everlog class specialization as everlogType"); \
-            static everlogType instance; \
-        }; \
-        everlogType EverlogInstance<instanceIdx>::instance; \
-    } \
+    template <> class GlobalInstance<instanceIdx> : public utils::InstanceHolder<instanceIdx, EverlogType> {}; \
 }
 
-
-#define EVERLOG_DEFAULT_INSTANCE 0
-
-#define EVERLOG_DECLARE_DEFAULT(everlogType)                EVERLOG_DECLARE_INSTANCE_(everlogType, EVERLOG_DEFAULT_INSTANCE)
+#define EVERLOG_DECLARE_DEFAULT(everlogType)                EVERLOG_DECLARE_INSTANCE_(everlogType, everlog::kDefaultInstance)
 #define EVERLOG_DECLARE_INSTANCE(everlogType, instanceIdx)  EVERLOG_DECLARE_INSTANCE_(everlogType, instanceIdx)
