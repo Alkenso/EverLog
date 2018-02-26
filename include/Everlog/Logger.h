@@ -21,7 +21,6 @@
 #include <atomic>
 #include <mutex>
 
-#include <Everlog/EventHandler.h>
 #include <Everlog/IEvent.h>
 
 namespace everlog
@@ -31,47 +30,57 @@ namespace everlog
     {
     public:
         using EventType = IEvent<Backends...>;
-        using IEventHandlerType = IEventHandler<Backends...>;
-        template <typename ExactBackend> using EventHandlerType = EventHandler<ExactBackend, Backends...>;
         
-        explicit Everlog(const Severity severity = Severity::None);
+        explicit Everlog(const Severity severity);
         
-        template <typename Handler, typename = typename std::enable_if<std::is_base_of<IEventHandlerType, Handler>::value>>
-        void addHandler(std::unique_ptr<Handler> handler);
+        template <typename Backend>
+        void addBackend(Backend&& backend);
         
-        template <typename ExactBackend>
-        void addHandler(ExactBackend&& backend);
-        
+        template <typename Backend>
+        void addWrappedBackend(std::unique_ptr<Backend> wrappedBackend);
+        template <typename Backend>
+        void addWrappedBackend(std::shared_ptr<Backend> wrappedBackend);
         
         void setSeverity(const Severity severity);
         void logEvent(const Severity severity, const EventType& event);
         
     private:
-        std::vector<std::unique_ptr<IEventHandlerType>> m_handlers;
-        std::atomic<Severity> m_severity;
-        
+        using Handler_ft = std::function<void(const Severity severity, const EventType& event)>;
+        std::vector<Handler_ft> m_handlers;
         std::mutex m_handlersMutex;
+        
+        std::atomic<Severity> m_severity;
     };
 }
 
 template <typename ... Backends>
-everlog::Everlog<Backends...>::Everlog(const Severity severity /* = Severity::None */)
+everlog::Everlog<Backends...>::Everlog(const Severity severity)
 : m_severity(severity)
 {}
 
 template <typename ... Backends>
-template <typename Handler, typename>
-void everlog::Everlog<Backends...>::addHandler(std::unique_ptr<Handler> handler)
+template <typename Backend>
+void everlog::Everlog<Backends...>::addBackend(Backend&& backend)
 {
-    std::lock_guard<std::mutex> lock(m_handlersMutex);
-    m_handlers.emplace_back(std::move(handler));
+    addWrappedBackend(std::make_shared<Backend>(std::forward<Backend>(backend)));
 }
 
 template <typename ... Backends>
-template <typename ExactBackend>
-void everlog::Everlog<Backends...>::addHandler(ExactBackend&& backend)
+template <typename Backend>
+void everlog::Everlog<Backends...>::addWrappedBackend(std::shared_ptr<Backend> wrappedBackend)
 {
-    addHandler(std::unique_ptr<EventHandlerType<ExactBackend>>(new EventHandlerType<ExactBackend>(std::forward<ExactBackend>(backend))));
+    std::lock_guard<std::mutex> lock(m_handlersMutex);
+    m_handlers.emplace_back([wrappedBackend](const Severity severity, const EventType& event)
+                            {
+                                event.writeWithBackend(severity, *wrappedBackend);
+                            });
+}
+
+template <typename ... Backends>
+template <typename Backend>
+void everlog::Everlog<Backends...>::addWrappedBackend(std::unique_ptr<Backend> wrappedBackend)
+{
+    addWrappedBackend(std::make_shared<Backend>(wrappedBackend.release()));
 }
 
 template <typename ... Backends>
@@ -90,8 +99,8 @@ void everlog::Everlog<Backends...>::logEvent(const Severity severity, const Even
         return;
     }
     
-    for (std::unique_ptr<IEventHandlerType>& handler : m_handlers)
+    for (const Handler_ft& handlerFn : m_handlers)
     {
-        handler->handleEvent(m_severity, event);
+        handlerFn(severity, event);
     }
 }
