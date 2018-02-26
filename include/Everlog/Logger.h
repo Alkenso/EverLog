@@ -47,7 +47,6 @@ namespace everlog
     private:
         using Handler_ft = std::function<void(const Severity severity, const EventType& event)>;
         std::vector<Handler_ft> m_handlers;
-        std::mutex m_handlersMutex;
         
         std::atomic<Severity> m_severity;
     };
@@ -69,7 +68,6 @@ template <typename ... Backends>
 template <typename Backend>
 void everlog::Everlog<Backends...>::addWrappedBackend(std::shared_ptr<Backend> wrappedBackend)
 {
-    std::lock_guard<std::mutex> lock(m_handlersMutex);
     m_handlers.emplace_back([wrappedBackend](const Severity severity, const EventType& event)
                             {
                                 event.writeWithBackend(severity, *wrappedBackend);
