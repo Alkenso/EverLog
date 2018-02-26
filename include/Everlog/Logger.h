@@ -19,7 +19,6 @@
 #include <vector>
 #include <memory>
 #include <atomic>
-#include <mutex>
 
 #include <Everlog/IEvent.h>
 
