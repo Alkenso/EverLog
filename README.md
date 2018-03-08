@@ -1,4 +1,4 @@
-# EverLog
+# Everlog
 
 Everlog is lightweight header-only library that allows perform logging of any kind of the log object into different destinations (backends)
 
@@ -17,7 +17,7 @@ For example, you need to log some event into console output and into database.
 Console requires human-readable message and the database requires SQL query string.
 It could be easily performed using Everlog.
 
-**Example**
+# Example
 
 You have some complex information that have to be logged.
 Let's all this log information could be described as class fields (or typical structure):
