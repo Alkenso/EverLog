@@ -4,16 +4,18 @@ Everlog is lightweight header-only library that allows perform logging of any ki
 
 Everlog is useful when the goal is to log some non-string information that have to be written into different destinations in variadic formats.
 
-For example, you need to log some event into console output and into database.
-Console requires human-readable message and the database requires SQL query string.
-It could be easily performed using Everlog.
-
 Out of the box Everlog provides:
 - severity;
 - global logger instances with convenient macroses;
 - support of any kind of backends: functions, classes, interfaces.
 
-Everlog is template-based solution and requires C++11.
+(!) Everlog is template-based solution and requires C++11.
+
+**Typical situation when Everlog can be used**
+
+For example, you need to log some event into console output and into database.
+Console requires human-readable message and the database requires SQL query string.
+It could be easily performed using Everlog.
 
 **Example**
 
@@ -29,7 +31,7 @@ Let's all this log information could be described as class fields (or typical st
     };
 
 This information must be written to sqlite database and into syslog.
-Note that database have few tables: Errors, Warnings, etc.
+Assume that database have few tables: Errors, Warnings, etc.
 
     void PrintToSyslog(const int logLevel, const char* message)
     {
@@ -52,9 +54,11 @@ Note that database have few tables: Errors, Warnings, etc.
 
 
 Declare Logger type
+
     using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;
 
 Declate logger global instance. (Note that there could be more then on global logger instance
+
     EVERLOG_DECLARE_DEFAULT(Log);
 
 Extend EventInfo class to allow logging itself into different backends
@@ -109,4 +113,4 @@ Now we can use Everlog log system
         LOG_ERROR(EventInfo("John Doe", "Something went wrong"));
     }
 
-... and now we have messages logged into syslog in readable form and saved in the database
+And that's it! Now we have messages logged into syslog in readable form and saved in the database
