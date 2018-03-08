@@ -9,7 +9,7 @@ Out of the box Everlog provides:
 - global logger instances with convenient macroses;
 - support of any kind of backends: functions, classes, interfaces.
 
-(!) Everlog is template-based solution and requires C++11.
+Everlog is template-based solution and requires ***C++11***.
 
 **Typical situation when Everlog can be used**
 
