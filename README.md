@@ -19,8 +19,8 @@ It could be easily performed using Everlog.
 
 # Example
 
-You have some complex information that have to be logged.
-Let's all this log information could be described as class fields (or typical structure):
+Lets assume you have some complex information that have to be logged.
+Let's all this log information could be described as class (or structure):
 
     class EventInfo
     {
