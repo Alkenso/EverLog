@@ -20,18 +20,21 @@ Everlog is template-based solution and requires C++11.
 You have some complex information that have to be logged.
 Let's all this log information could be described as class fields (or typical structure):
 
-{code}class EventInfo
+{code}
+class EventInfo
 {
 private:
     std::string m_message;
     std::string m_userId;
     time_t m_timestamp;
-};{code}
+};
+{code}
 
 This information must be written to sqlite database and into syslog.
 Note that database have few tables: Errors, Warnings, etc.
 
-{code}void PrintToSyslog(const int logLevel, const char* message)
+{code}
+void PrintToSyslog(const int logLevel, const char* message)
 {
     syslog(logLevel, message);
 }
@@ -48,19 +51,25 @@ public:
 
 private:
     // sql implementation
-};{code}
+};
+{code}
 
 
 Declare Logger type
-{code}using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;{code}
+{code}
+using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;
+{code}
 
 Declate logger global instance. (Note that there could be more then on global logger instance
-{code}EVERLOG_DECLARE_DEFAULT(Log){code}
+{code}
+EVERLOG_DECLARE_DEFAULT(Log);
+{code}
 
 Extend EventInfo class to allow logging itself into different backends
 Everlog<...>::EventType is used to force derived class to override necessary log methods
 
-{code}class EventInfo : public Log::EventType
+{code}
+class EventInfo : public Log::EventType
 {
 public:
     EventInfo(const std::string& userId, const std::string& message) : m_userId(userId), m_message(message), m_timestamp(time(0)) {}
@@ -85,11 +94,13 @@ private:
     std::string m_userId;
     std::string m_message;
     time_t m_timestamp;
-};{code}
+};
+{code}
 
 The last step is to initialize the logger
 
-{code}int main(void)
+{code}
+int main(void)
 {
     Log& logger = everlog::DefaultInstance::init(everlog::Severity::Info);
     
@@ -97,16 +108,19 @@ The last step is to initialize the logger
     logger.addBackend(SQLiteDb("/path/to/database.db"));
     
     ...
-}{code}
+}
+{code}
 
 Now we can use Everlog log system
 
-{code}void Foo()
+{code}
+void Foo()
 {
     LOG_INFO(EventInfo("John Doe", "Performing Foo..."));
     ...
 
     LOG_ERROR(EventInfo("John Doe", "Something went wrong"));
 }
+{code}
 
 ... and now we have messages logged into syslog in readable form and saved in the database
