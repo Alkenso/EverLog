@@ -20,107 +20,93 @@ Everlog is template-based solution and requires C++11.
 You have some complex information that have to be logged.
 Let's all this log information could be described as class fields (or typical structure):
 
-{code}
-class EventInfo
-{
-private:
-    std::string m_message;
-    std::string m_userId;
-    time_t m_timestamp;
-};
-{code}
+    class EventInfo
+    {
+    private:
+        std::string m_message;
+        std::string m_userId;
+        time_t m_timestamp;
+    };
 
 This information must be written to sqlite database and into syslog.
 Note that database have few tables: Errors, Warnings, etc.
 
-{code}
-void PrintToSyslog(const int logLevel, const char* message)
-{
-    syslog(logLevel, message);
-}
-
-class SQLiteDb
-{
-public:
-    ...
-
-    void execQuery(const std::string& query)
+    void PrintToSyslog(const int logLevel, const char* message)
     {
-        std::cout << "Execute query: " << query << '\n';
+        syslog(logLevel, message);
     }
 
-private:
-    // sql implementation
-};
-{code}
+    class SQLiteDb
+    {
+    public:
+        ...
+
+        void execQuery(const std::string& query)
+        {
+            std::cout << "Execute query: " << query << '\n';
+        }
+
+    private:
+        // sql implementation
+    };
 
 
 Declare Logger type
-{code}
-using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;
-{code}
+    using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;
 
 Declate logger global instance. (Note that there could be more then on global logger instance
-{code}
-EVERLOG_DECLARE_DEFAULT(Log);
-{code}
+    EVERLOG_DECLARE_DEFAULT(Log);
 
 Extend EventInfo class to allow logging itself into different backends
 Everlog<...>::EventType is used to force derived class to override necessary log methods
 
-{code}
-class EventInfo : public Log::EventType
-{
-public:
-    EventInfo(const std::string& userId, const std::string& message) : m_userId(userId), m_message(message), m_timestamp(time(0)) {}
-    
-    virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& h) const override
+    class EventInfo : public Log::EventType
     {
-        std::stringstream query;
-        query << "INSERT INTO " << TableNameFromSeverity(severity) 
-              << " (message, user_id, time) "
-              << "VALUES (" << m_message << ", "
-              << m_userId << ", "
-              << m_timestamp << ")";
-        h.execQuery(query.str());
-    }
-    
-    virtual void writeWithBackend(const everlog::Severity severity, decltype(&PrintToSyslog)& h) const override
-    {
-        h(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
-    }
-    
-private:
-    std::string m_userId;
-    std::string m_message;
-    time_t m_timestamp;
-};
-{code}
+    public:
+        EventInfo(const std::string& userId, const std::string& message) : m_userId(userId), m_message(message), m_timestamp(time(0)) {}
+
+        virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& h) const override
+        {
+            std::stringstream query;
+            query << "INSERT INTO " << TableNameFromSeverity(severity) 
+                  << " (message, user_id, time) "
+                  << "VALUES (" << m_message << ", "
+                  << m_userId << ", "
+                  << m_timestamp << ")";
+            h.execQuery(query.str());
+        }
+
+        virtual void writeWithBackend(const everlog::Severity severity, decltype(&PrintToSyslog)& h) const override
+        {
+            h(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
+        }
+
+    private:
+        std::string m_userId;
+        std::string m_message;
+        time_t m_timestamp;
+    };
 
 The last step is to initialize the logger
 
-{code}
-int main(void)
-{
-    Log& logger = everlog::DefaultInstance::init(everlog::Severity::Info);
-    
-    logger.addBackend(&PrintToSyslog);
-    logger.addBackend(SQLiteDb("/path/to/database.db"));
-    
-    ...
-}
-{code}
+    int main(void)
+    {
+        Log& logger = everlog::DefaultInstance::init(everlog::Severity::Info);
+
+        logger.addBackend(&PrintToSyslog);
+        logger.addBackend(SQLiteDb("/path/to/database.db"));
+
+        ...
+    }
 
 Now we can use Everlog log system
 
-{code}
-void Foo()
-{
-    LOG_INFO(EventInfo("John Doe", "Performing Foo..."));
-    ...
+    void Foo()
+    {
+        LOG_INFO(EventInfo("John Doe", "Performing Foo..."));
+        ...
 
-    LOG_ERROR(EventInfo("John Doe", "Something went wrong"));
-}
-{code}
+        LOG_ERROR(EventInfo("John Doe", "Something went wrong"));
+    }
 
 ... and now we have messages logged into syslog in readable form and saved in the database
