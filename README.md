@@ -70,7 +70,7 @@ Everlog<...>::EventType is used to force derived class to override necessary log
     public:
         EventInfo(const std::string& userId, const std::string& message) : m_userId(userId), m_message(message), m_timestamp(time(0)) {}
 
-        virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& h) const override
+        virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& backend) const override
         {
             std::stringstream query;
             query << "INSERT INTO " << TableNameFromSeverity(severity) 
@@ -78,12 +78,12 @@ Everlog<...>::EventType is used to force derived class to override necessary log
                   << "VALUES (" << m_message << ", "
                   << m_userId << ", "
                   << m_timestamp << ")";
-            h.execQuery(query.str());
+            backend.execQuery(query.str());
         }
 
-        virtual void writeWithBackend(const everlog::Severity severity, decltype(&PrintToSyslog)& h) const override
+        virtual void writeWithBackend(const everlog::Severity severity, decltype(&PrintToSyslog)& backend) const override
         {
-            h(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
+            backend(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
         }
 
     private:
