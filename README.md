@@ -5,9 +5,10 @@ Everlog is lightweight header-only library that allows perform logging of any ki
 Everlog is useful when the goal is to log some non-string information that have to be written into different destinations in variadic formats.
 
 Out of the box Everlog provides:
-- severity;
+- support of any kind of backends: functions, classes, interfaces;
+- support of multiple backends behind single logger instance;
 - global logger instances with convenient macroses;
-- support of any kind of backends: functions, classes, interfaces.
+- log severity;
 
 Everlog is template-based solution and requires ***C++11***.
 
