@@ -17,8 +17,6 @@
 #include <iostream>
 #include <sstream>
 
-#include <syslog.h>
-
 #include <Everlog/Everlog.h>
 
 class SQLiteDb
