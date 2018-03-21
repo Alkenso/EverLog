@@ -90,7 +90,5 @@ int main()
     
     LOG_ERROR(LogEvent("Something happened..."));
     
-    syslog(<#int#>, <#const char *, ...#>)
-    
     return 0;
 }
