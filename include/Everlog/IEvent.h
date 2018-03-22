@@ -20,28 +20,41 @@
 
 namespace everlog
 {
-    // General definition to apply recursive variadic args
-    // The class itself forces events to be able to log with given list of backends
-    template <typename... Backends>
+    template <typename Backend, typename... Args>
+    class IEventBase
+    {
+    public:
+        virtual ~IEventBase() {}
+        
+        virtual void writeWithBackend(Backend&, Args...) const = 0;
+    };
+    
+    /* General definition to apply recursive variadic args
+     * The class itself forces events to be able to log with given list of backends */
+    template <bool UseSeverity, typename... Backends>
     class IEvent;
     
-    // Class for single backend
+    /* Classes for single backend */
     template <typename Backend>
-    class IEvent<Backend>
+    class IEvent<false, Backend> : public IEventBase<Backend>
     {
     public:
         virtual ~IEvent() {}
         
-        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
+        virtual void writeWithBackend(Backend&) const override = 0;
     };
     
-    // Class for multiple backends
-    template <typename Backend, typename... Backends>
-    class IEvent<Backend, Backends...>: public IEvent<Backend>, public IEvent<Backends>...
+    template <typename Backend>
+    class IEvent<true, Backend> : public IEventBase<Backend, const Severity>
     {
     public:
-        using IEvent<Backends...>::writeWithBackend;
+        virtual ~IEvent() {}
         
-        virtual void writeWithBackend(const Severity severity, Backend&) const = 0;
+        virtual void writeWithBackend(Backend&, const Severity severity) const override = 0;
     };
+    
+    /* Class for multiple backends */
+    template <bool UseSeverity, typename... Backends>
+    class IEvent: public IEvent<UseSeverity, Backends>...
+    {};
 }

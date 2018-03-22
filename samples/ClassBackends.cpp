@@ -54,25 +54,42 @@ public:
 };
 
 
-using Log = everlog::Everlog<SQLiteDb, IStringBackend>;
-EVERLOG_DECLARE_DEFAULT(Log)
-
-class LogEvent : public Log::EventType
+//using Log = everlog::Everlog<SQLiteDb, IStringBackend>;
+//EVERLOG_DECLARE_DEFAULT(Log)
+//
+class LogEvent : public everlog::Everlog<false, SQLiteDb, StdoutBackend, IStringBackend>::EventType
 {
 public:
     explicit LogEvent(const std::string& s) : m_message(s) {}
     
-    virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& h) const override
+    virtual void writeWithBackend(SQLiteDb& h) const override
     {
         std::stringstream query;
-        query << "INSERT INTO " << std::to_string(static_cast<int64_t>(severity)) << " (message) VALUES (" << m_message << ")";
+        query << "INSERT INTO Events (message) VALUES (" << m_message << ")";
         h.execQuery(query.str());
     }
     
-    virtual void writeWithBackend(const everlog::Severity severity, IStringBackend& h) const override
+    virtual void writeWithBackend(IStringBackend& h) const override
     {
-        h.logMessage("[" + std::to_string(static_cast<int64_t>(severity)) + "]: " + m_message);
+        h.logMessage(m_message);
     }
+    
+    virtual void writeWithBackend(StdoutBackend& h) const override
+    {
+        h.logMessage(m_message);
+    }
+    
+//    virtual void writeWithBackend(SQLiteDb& h, const everlog::Severity severity) const override
+//    {
+//        std::stringstream query;
+//        query << "INSERT INTO " << std::to_string(static_cast<int64_t>(severity)) << " (message) VALUES (" << m_message << ")";
+//        h.execQuery(query.str());
+//    }
+//    
+//    virtual void writeWithBackend(IStringBackend& h, const everlog::Severity severity) const override
+//    {
+//        h.logMessage("[" + std::to_string(static_cast<int64_t>(severity)) + "]: " + m_message);
+//    }
     
 private:
     const std::string m_message;
@@ -80,13 +97,28 @@ private:
 
 int main()
 {
-    Log& logger = everlog::DefaultInstance::init(everlog::Severity::Warning);
+    everlog::Everlog<false, SQLiteDb, StdoutBackend, IStringBackend> logger;
+    
+//    everlog::Everlog<true, SQLiteDb, IStringBackend> log1(everlog::Severity::Warning);
+    
+    logger.logEvent(LogEvent("qwe"));
+//    log1.logEvent(everlog::Severity::Warning, LogEvent("qwe"));
+//    Log& logger = everlog::DefaultInstance::init(everlog::Severity::Warning);
+    //
+    logger.addBackend(std::make_shared<StdoutBackend>());
+    logger.addBackend(std::make_unique<StderrBackend>());
+    logger.addBackend(std::make_shared<SQLiteDb>());
+    
+    logger.addBackend(std::make_shared<StdoutBackend>());
+    logger.addBackend(std::make_unique<StderrBackend>());
+    logger.addBackend(std::make_unique<SQLiteDb>());
     
     logger.addBackend(StdoutBackend());
     logger.addBackend(StderrBackend());
     logger.addBackend(SQLiteDb());
     
-    LOG_ERROR(LogEvent("Something happened..."));
+//
+//    LOG_ERROR(LogEvent("Something happened..."));
     
     return 0;
 }
