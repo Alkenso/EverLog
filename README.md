@@ -9,6 +9,7 @@ Out of the box Everlog provides:
 - support of multiple backends behind single logger instance;
 - global logger instances with convenient macroses;
 - log severity;
+- minimal usage of macroses
 
 Everlog is template-based solution and requires ***C++11***.
 
@@ -56,7 +57,7 @@ Assume that database have few tables: Errors, Warnings, etc.
 
 Declare Logger type
 
-    using Log = everlog::Everlog<SQLiteDb, decltype(&PrintToSyslog)>;
+    using Log = everlog::Everlog<true, SQLiteDb, decltype(&PrintToSyslog)>;
 
 Declate logger global instance. (Note that there could be more then on global logger instance
 
@@ -70,7 +71,7 @@ Everlog<...>::EventType is used to force derived class to override necessary log
     public:
         EventInfo(const std::string& userId, const std::string& message) : m_userId(userId), m_message(message), m_timestamp(time(0)) {}
 
-        virtual void writeWithBackend(const everlog::Severity severity, SQLiteDb& backend) const override
+        virtual void writeWithBackend(SQLiteDb& db, const everlog::Severity severity) const override
         {
             std::stringstream query;
             query << "INSERT INTO " << TableNameFromSeverity(severity) 
@@ -78,12 +79,12 @@ Everlog<...>::EventType is used to force derived class to override necessary log
                   << "VALUES (" << m_message << ", "
                   << m_userId << ", "
                   << m_timestamp << ")";
-            backend.execQuery(query.str());
+            db.execQuery(query.str());
         }
 
-        virtual void writeWithBackend(const everlog::Severity severity, decltype(&PrintToSyslog)& backend) const override
+        virtual void writeWithBackend(decltype(&PrintToSyslog)& logFn, const everlog::Severity severity) const override
         {
-            backend(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
+            logFn(SyslogLevelFromSeverity(severity), std::to_string(m_timestamp) + "[" + m_userId + "]: " + m_message);
         }
 
     private:
@@ -108,10 +109,10 @@ Now we can use Everlog log system
 
     void Foo()
     {
-        LOG_INFO(EventInfo("John Doe", "Performing Foo..."));
+        everlog::LogInfo(EventInfo("John Doe", "Performing Foo..."));
         ...
 
-        LOG_ERROR(EventInfo("John Doe", "Something went wrong"));
+        everlog::LogError(EventInfo("John Doe", "Oops...! Something went wrong"));
     }
 
 And that's it! Now we have messages logged into syslog in readable form and saved in the database
