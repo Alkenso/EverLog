@@ -16,72 +16,32 @@
 
 #pragma once
 
-#include <vector>
-#include <memory>
 #include <atomic>
 
-#include <Everlog/IEvent.h>
+#include <Everlog/LoggerBase.h>
 
 namespace everlog
 {
-    template <typename... Backends>
-    class EverlogBase;
-    
-    template <typename Backend>
-    class EverlogBase<Backend>
-    {
-    public:
-        void addBackend(std::shared_ptr<Backend> backend);
-        
-    protected:
-        template <typename ... Args>
-        void logEvent(const IEventBase<Backend, Args...>& event, typename std::decay<Args>::type... args);
-        
-    private:
-        std::vector<std::shared_ptr<Backend>> m_backends;
-    };
-    
-    template <typename Backend, typename... Backends>
-    class EverlogBase<Backend, Backends...>: public EverlogBase<Backend>, public EverlogBase<Backends...>
-    {
-    public:
-        using EverlogBase<Backend>::addBackend;
-        using EverlogBase<Backends...>::addBackend;
-        
-    protected:
-        template <typename EventType, typename ... Args>
-        void logEvent(const EventType& event, Args&&... args);
-    };
-    
-    template <typename... Backends>
-    class EverlogBase1: public EverlogBase<Backends...>
-    {
-    public:
-        using EverlogBase<Backends...>::addBackend;
-        
-        template <typename T>
-        void addBackend(std::unique_ptr<T> wrappedBackend);
-        
-        template <typename T>
-        void addBackend(T&& wrappedBackend);
-    };
-    
     template <bool UseSeverity, typename ... Backends>
     class Everlog;
     
+    
     template <typename ... Backends>
-    class Everlog<false, Backends...>: public EverlogBase1<Backends...>
+    class Everlog<false, Backends...>: public EverlogBase<Backends...>
     {
     public:
+        static constexpr bool UseSeverity = false;
         using EventType = IEvent<false, Backends...>;
         
         void logEvent(const EventType& event);
     };
     
+    
     template <typename ... Backends>
-    class Everlog<true, Backends...>: public EverlogBase1<Backends...>
+    class Everlog<true, Backends...>: public EverlogBase<Backends...>
     {
     public:
+        static constexpr bool UseSeverity = true;
         using EventType = IEvent<true, Backends...>;
         
         explicit Everlog(const Severity severity);
@@ -93,43 +53,6 @@ namespace everlog
     };
 }
 
-template <typename Backend>
-void everlog::EverlogBase<Backend>::addBackend(std::shared_ptr<Backend> backend)
-{
-    m_backends.push_back(backend);
-}
-
-template <typename Backend>
-template <typename ... Args>
-void everlog::EverlogBase<Backend>::logEvent(const IEventBase<Backend, Args...>& event, typename std::decay<Args>::type... args)
-{
-    for (auto& b : m_backends)
-    {
-        event.writeWithBackend(*b, std::forward<Args>(args)...);
-    }
-}
-
-template <typename Backend, typename... Backends>
-template <typename EventType, typename ... Args>
-void everlog::EverlogBase<Backend, Backends...>::logEvent(const EventType& event, Args&&... args)
-{
-    EverlogBase<Backend>::logEvent(event, std::forward<Args>(args)...);
-    EverlogBase<Backends...>::logEvent(event, std::forward<Args>(args)...);
-}
-
-template <typename... Backends>
-template <typename T>
-void everlog::EverlogBase1<Backends...>::addBackend(std::unique_ptr<T> wrappedBackend)
-{
-    EverlogBase<Backends...>::addBackend(std::move(wrappedBackend));
-}
-
-template <typename... Backends>
-template <typename T>
-void everlog::EverlogBase1<Backends...>::addBackend(T&& wrappedBackend)
-{
-    EverlogBase<Backends...>::addBackend(std::make_shared<T>(std::forward<T>(wrappedBackend)));
-}
 
 template <typename ... Backends>
 void everlog::Everlog<false, Backends...>::logEvent(const EventType& event)

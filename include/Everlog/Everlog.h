@@ -19,21 +19,62 @@
 #include <Everlog/Logger.h>
 #include <Everlog/Init.h>
 
-#define LOG_I(instanceIdx, severity, event) if (everlog::GlobalInstance<instanceIdx>::get()) everlog::GlobalInstance<instanceIdx>::get()->logEvent(severity, event)
+namespace everlog
+{
+    template <int InstanceIdx = kDefaultInstance, typename Event>
+    void LogIt(const Severity severity, const Event& e);
+    
+    template <int InstanceIdx = kDefaultInstance, typename Event>
+    void LogIt(const Event& e);
+    
+    
+#define DECLARE_LOG_FN_I(_severity) \
+    template <int instanceIdx, typename Event> \
+    void Log##_severity(const Event& e) { LogIt<instanceIdx>(everlog::Severity::_severity, e); }
+    
+    DECLARE_LOG_FN_I(Fatal)
+    DECLARE_LOG_FN_I(Error)
+    DECLARE_LOG_FN_I(Warning)
+    DECLARE_LOG_FN_I(Info)
+    DECLARE_LOG_FN_I(Debug)
+    DECLARE_LOG_FN_I(Verbose)
+    
+#define DECLARE_LOG_FN(_severity) \
+    template <typename Event> \
+    void Log##_severity(const Event& e) { LogIt<kDefaultInstance>(everlog::Severity::_severity, e); }
+    
+    DECLARE_LOG_FN(Fatal)
+    DECLARE_LOG_FN(Error)
+    DECLARE_LOG_FN(Warning)
+    DECLARE_LOG_FN(Info)
+    DECLARE_LOG_FN(Debug)
+    DECLARE_LOG_FN(Verbose)
+    
+    namespace utils
+    {
+        template <int InstanceIdx, typename Event, typename... Args>
+        void LogIt(const Event& e, Args&&... args);
+    }
+}
 
-#define LOG_FATAL_I(instance, event)        LOG_I(instance, everlog::Severity::Fatal, event)
-#define LOG_ERROR_I(instance, event)        LOG_I(instance, everlog::Severity::Error, event)
-#define LOG_WARNING_I(instance, event)      LOG_I(instance, everlog::Severity::Warning, event)
-#define LOG_INFO_I(instance, event)         LOG_I(instance, everlog::Severity::Info, event)
-#define LOG_DEBUG_I(instance, event)        LOG_I(instance, everlog::Severity::Debug, event)
-#define LOG_VERBOSE_I(instance, event)      LOG_I(instance, everlog::Severity::Verbose, event)
+template <int InstanceIdx, typename Event>
+void everlog::LogIt(const Severity severity, const Event& e)
+{
+    utils::LogIt<InstanceIdx>(e, severity);
+}
 
+template <int InstanceIdx, typename Event>
+void everlog::LogIt(const Event& e)
+{
+    utils::LogIt<InstanceIdx>(e);
+}
 
-#define LOG(severity, event)                LOG_I(everlog::kDefaultInstance, severity, event)
-
-#define LOG_FATAL(event)                    LOG(everlog::Severity::Fatal, event)
-#define LOG_ERROR(event)                    LOG(everlog::Severity::Error, event)
-#define LOG_WARNING(event)                  LOG(everlog::Severity::Warning, event)
-#define LOG_INFO(event)                     LOG(everlog::Severity::Info, event)
-#define LOG_DEBUG(event)                    LOG(everlog::Severity::Debug, event)
-#define LOG_VERBOSE(event)                  LOG(everlog::Severity::Verbose, event)
+template <int InstanceIdx, typename Event, typename... Args>
+void everlog::utils::LogIt(const Event& e, Args&&... args)
+{
+    auto* logger = everlog::GlobalInstance<InstanceIdx>::get();
+    if (logger)
+    {
+        logger->logEvent(args..., e);
+    }
+}

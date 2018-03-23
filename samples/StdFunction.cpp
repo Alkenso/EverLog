@@ -26,16 +26,16 @@ void PrintConsole(const std::string& message)
 }
 
 using Function = std::function<void(const std::string&)>;
-using Log = everlog::Everlog<Function>;
+using Log = everlog::Everlog<true, Function>;
 
-EVERLOG_DECLARE_DEFAULT(Log)
+EVERLOG_DECLARE_DEFAULT(Log);
 
 class LogEvent : public Log::EventType
 {
 public:
     explicit LogEvent(const std::string& s) : m_message(s) {}
     
-    virtual void writeWithBackend(const everlog::Severity severity, Function& h) const override
+    virtual void writeWithBackend(Function& h, const everlog::Severity severity) const override
     {
         std::stringstream ss;
         ss << "Level " << static_cast<int64_t>(severity) << ": " << m_message;
@@ -58,7 +58,8 @@ int main()
         std::cout << externalCtx << ": " << message << '\n';
     });
     
-    LOG_ERROR(LogEvent("Error here!"));
+    LogEvent event("Something happened...");
+    everlog::LogError(event);
     
     return 0;
 }

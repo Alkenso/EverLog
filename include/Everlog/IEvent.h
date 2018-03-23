@@ -20,6 +20,7 @@
 
 namespace everlog
 {
+    /* Base universal class for all everlog events */
     template <typename Backend, typename... Args>
     class IEventBase
     {
@@ -50,7 +51,7 @@ namespace everlog
     public:
         virtual ~IEvent() {}
         
-        virtual void writeWithBackend(Backend&, const Severity severity) const override = 0;
+        virtual void writeWithBackend(Backend&, const Severity) const override = 0;
     };
     
     /* Class for multiple backends */

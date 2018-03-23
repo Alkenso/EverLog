@@ -19,15 +19,22 @@
 
 #include <Everlog/Everlog.h>
 
-/* Backend function */
+class SQLiteDb
+{
+public:
+    void execQuery(const std::string& query)
+    {
+        std::cout << "Execute query: " << query << '\n';
+    }
+};
+
 void PrintConsole(const std::string& message)
 {
     std::cout << message << '\n';
 }
 
 using Function = decltype(&PrintConsole);
-using Log = everlog::Everlog<true, Function>;
-
+using Log = everlog::Everlog<false, Function, SQLiteDb>;
 EVERLOG_DECLARE_DEFAULT(Log);
 
 class LogEvent : public Log::EventType
@@ -35,11 +42,16 @@ class LogEvent : public Log::EventType
 public:
     explicit LogEvent(const std::string& s) : m_message(s) {}
     
-    virtual void writeWithBackend(Function& h, const everlog::Severity severity) const override
+    virtual void writeWithBackend(SQLiteDb& h) const override
     {
-        std::stringstream ss;
-        ss << "Level " << static_cast<int64_t>(severity) << ": " << m_message;
-        h(ss.str());
+        std::stringstream query;
+        query << "INSERT INTO Events (message) VALUES (" << m_message << ")";
+        h.execQuery(query.str());
+    }
+    
+    virtual void writeWithBackend(Function& h) const override
+    {
+        h(m_message);
     }
     
 private:
@@ -48,12 +60,13 @@ private:
 
 int main()
 {
-    Log& logger = everlog::DefaultInstance::init(everlog::Severity::Warning);
+    Log& logger = everlog::DefaultInstance::init();
     
+    logger.addBackend(SQLiteDb());
     logger.addBackend(&PrintConsole);
     
     LogEvent event("Something happened...");
-    everlog::LogError(event);
+    everlog::LogIt(event);
     
     return 0;
 }
