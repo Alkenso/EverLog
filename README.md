@@ -57,6 +57,8 @@ Assume that database have few tables: Errors, Warnings, etc.
 
 Declare Logger type
 
+    #include <Everlog/Everlog.h>
+    
     using Log = everlog::Everlog<true, SQLiteDb, decltype(&PrintToSyslog)>;
 
 Declate logger global instance. (Note that there could be more then on global logger instance
