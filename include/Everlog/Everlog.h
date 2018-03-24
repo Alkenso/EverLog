@@ -57,6 +57,7 @@ namespace everlog
     }
 }
 
+
 template <int InstanceIdx, typename Event>
 void everlog::LogIt(const Severity severity, const Event& e)
 {
